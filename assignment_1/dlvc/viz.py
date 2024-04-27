@@ -6,8 +6,11 @@ import numpy as np
 
 
 
-from dlvc.datasets.cifar10 import CIFAR10Dataset
-from dlvc.datasets.dataset import Subset
+# from dlvc.datasets.cifar10 import CIFAR10Dataset
+# from dlvc.datasets.dataset import Subset
+
+from datasets.cifar10 import CIFAR10Dataset
+from datasets.dataset import Subset
 
 
 def imshow(img):
@@ -25,7 +28,7 @@ if __name__ == '__main__':
 
 
         
-    train_data = CIFAR10Dataset(fdir="your_path_to_the_dataset", subset=Subset.TRAINING, transform=transform)
+    train_data = CIFAR10Dataset(fdir='../cifar-10-batches-py', subset=Subset.TRAINING, transform=transform)
     train_data_loader = torch.utils.data.DataLoader(train_data,
                                             batch_size=8,
                                             shuffle=False,
