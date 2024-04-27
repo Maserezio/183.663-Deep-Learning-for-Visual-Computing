@@ -3,9 +3,11 @@ from typing import Tuple
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from tqdm import tqdm
+from torch.utils.data import DataLoader
 
 # for wandb users:
 from dlvc.wandb_logger import WandBLogger
+# from wandb_logger import WandBLogger
 
 class BaseTrainer(metaclass=ABCMeta):
     '''
@@ -80,9 +82,24 @@ class ImgClassificationTrainer(BaseTrainer):
         
 
         ## TODO implement
-        pass
-        
-        
+        self.model = model
+        self.optimizer = optimizer
+        self.loss_fn = loss_fn
+        self.lr_scheduler = lr_scheduler
+        self.train_metric = train_metric
+        self.val_metric = val_metric
+        self.train_data = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+        self.val_data = DataLoader(val_data, batch_size=batch_size, shuffle=False)
+        self.device = device
+        self.num_epochs = num_epochs
+        self.training_save_dir = Path(training_save_dir)
+        self.batch_size = batch_size
+        self.val_frequency = val_frequency
+        self.best_accuracy = 0.0
+
+        self.logger = WandBLogger()
+        # Check if training save directory exists
+        training_save_dir.mkdir(parents=True, exist_ok=True)
 
     def _train_epoch(self, epoch_idx: int) -> Tuple[float, float, float]:
         """
@@ -93,7 +110,30 @@ class ImgClassificationTrainer(BaseTrainer):
         epoch_idx (int): Current epoch number
         """
         ## TODO implement
-        pass
+        self.model.train()
+        total_loss = 0
+        self.train_metric.reset()
+
+        for data, target in self.train_data:
+            # print(data.shape, target.shape)
+            data, target = data.to(self.device), target.to(self.device)
+            self.optimizer.zero_grad()
+            output = self.model(data)
+            loss = self.loss_fn(output, target)
+            loss.backward()
+            self.optimizer.step()
+
+            total_loss += loss.item()
+
+            # print(output.shape, target.shape)
+            self.train_metric.update(output, target)
+
+        average_loss = total_loss / len(self.train_data)
+        accuracy = self.train_metric.accuracy()
+        per_class_accuracy = self.train_metric.per_class_accuracy()
+        print(
+            f'Epoch {epoch_idx}: Train Loss {average_loss:.4f}, Accuracy {accuracy:.4f}, Per-Class Accuracy {per_class_accuracy:.4f}')
+        return average_loss, accuracy, per_class_accuracy
 
         
 
@@ -107,7 +147,24 @@ class ImgClassificationTrainer(BaseTrainer):
         epoch_idx (int): Current epoch number
         """
         ## TODO implement
-        pass
+        self.model.eval()
+        total_loss = 0
+        self.val_metric.reset()
+
+        with torch.no_grad():
+            for data, target in self.val_data:
+                data, target = data.to(self.device), target.to(self.device)
+                output = self.model(data)
+                loss = self.loss_fn(output, target)
+                total_loss += loss.item()
+                self.val_metric.update(output, target)
+
+        average_loss = total_loss / len(self.val_data)
+        accuracy = self.val_metric.accuracy()
+        per_class_accuracy = self.val_metric.per_class_accuracy()
+        print(
+            f'Epoch {epoch_idx}: Val Loss {average_loss:.4f}, Accuracy {accuracy:.4f}, Per-Class Accuracy {per_class_accuracy:.4f}')
+        return average_loss, accuracy, per_class_accuracy
 
         
 
@@ -120,7 +177,19 @@ class ImgClassificationTrainer(BaseTrainer):
         Depending on the val_frequency parameter, validation is not performed every epoch.
         """
         ## TODO implement
-        pass
+        for epoch in range(self.num_epochs):
+            train_loss, train_accuracy, train_per_class_accuracy = self._train_epoch(epoch)
+            self.logger.log({'epoch': epoch, 'train_loss': train_loss, 'train_accuracy': train_accuracy})
+
+            if (epoch + 1) % self.val_frequency == 0:
+                val_loss, val_accuracy, val_per_class_accuracy = self._val_epoch(epoch)
+                self.logger.log({'epoch': epoch, 'val_loss': val_loss, 'val_accuracy': val_accuracy})
+
+                # Save the best model
+                if val_per_class_accuracy > self.best_accuracy:
+                    self.best_accuracy = val_per_class_accuracy
+                    torch.save(self.model.state_dict(), self.training_save_dir / 'best_model.pth')
+            self.lr_scheduler.step()
 
                 
 

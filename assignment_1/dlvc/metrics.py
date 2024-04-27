@@ -68,6 +68,7 @@ class Accuracy(PerformanceMeasure):
         if prediction.shape[0] != target.shape[0]:
             raise ValueError("Number of predictions and targets must match")
         if prediction.shape[1] != len(self.classes):
+            # print(prediction.shape[0], prediction.shape[1], len(self.classes))
             raise ValueError("Number of predictions per sample must match number of classes")
         if target.max() >= len(self.classes):
             raise ValueError("Target contains out of range class values")

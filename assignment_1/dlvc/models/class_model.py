@@ -17,7 +17,13 @@ class DeepClassifier(nn.Module):
         '''
 
         ## TODO implement
-        pass
+        filename = "model"
+        if suffix:
+            filename += f"_{suffix}"
+        filename += ".pth"
+        save_path = save_dir / filename
+        torch.save(self.net.state_dict(), save_path)
+        print(f"Model saved to {save_path}")
 
     def load(self, path):
         '''
@@ -26,4 +32,6 @@ class DeepClassifier(nn.Module):
         '''
         
         ## TODO implement
-        pass
+        self.net.load_state_dict(torch.load(path))
+        print(f"Model loaded from {path}")
+        self.net.eval()
