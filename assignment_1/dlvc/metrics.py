@@ -48,7 +48,10 @@ class Accuracy(PerformanceMeasure):
         Resets the internal state.
         '''
         ## TODO implement
-        pass
+        self.total_correct = 0
+        self.total_samples = 0
+        self.class_correct = torch.zeros(len(self.classes))
+        self.class_total = torch.zeros(len(self.classes))
 
     def update(self, prediction: torch.Tensor, 
                target: torch.Tensor) -> None:
@@ -60,7 +63,26 @@ class Accuracy(PerformanceMeasure):
         '''
 
         ## TODO implement
-        pass
+        if prediction.dim() != 2 or target.dim() != 1:
+            raise ValueError("Unsupported tensor dimensions")
+        if prediction.shape[0] != target.shape[0]:
+            raise ValueError("Number of predictions and targets must match")
+        if prediction.shape[1] != len(self.classes):
+            raise ValueError("Number of predictions per sample must match number of classes")
+        if target.max() >= len(self.classes):
+            raise ValueError("Target contains out of range class values")
+
+        predicted_classes = torch.argmax(prediction, dim=1)
+        correct = predicted_classes == target
+
+        # totals
+        self.total_correct += correct.sum().item()
+        self.total_samples += target.size(0)
+
+        # per class
+        for i in range(len(self.classes)):
+            self.class_correct[i] += correct[target == i].sum().item()
+            self.class_total[i] += (target == i).sum().item()
 
     def __str__(self):
         '''
@@ -68,7 +90,9 @@ class Accuracy(PerformanceMeasure):
         '''
 
         ## TODO implement
-        pass
+        acc = self.accuracy()
+        per_class_acc = self.per_class_accuracy()
+        return f"Overall Accuracy: {acc:.4f}, Per class accuracy: {per_class_acc:.4f}"
 
 
     def accuracy(self) -> float:
@@ -78,7 +102,9 @@ class Accuracy(PerformanceMeasure):
         '''
 
         ## TODO implement
-        pass
+        if self.total_samples == 0:
+            return 0.0
+        return self.total_correct / self.total_samples
     
     def per_class_accuracy(self) -> float:
         '''
@@ -86,5 +112,8 @@ class Accuracy(PerformanceMeasure):
         Returns 0 if no data is available (after resets).
         '''
         ## TODO implement
-        pass
+        if torch.sum(self.class_total) == 0:
+            return 0.0
+        per_class_acc = self.class_correct / self.class_total
+        return per_class_acc[torch.isfinite(per_class_acc)].mean().item()
        
