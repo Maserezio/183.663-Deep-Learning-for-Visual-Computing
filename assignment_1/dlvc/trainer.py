@@ -194,7 +194,8 @@ class ImgClassificationTrainer(BaseTrainer):
                 # Save the best model
                 if val_per_class_accuracy > self.best_accuracy:
                     self.best_accuracy = val_per_class_accuracy
-                    torch.save(self.model.state_dict(), self.training_save_dir / 'best_model.pth')
+                    # torch.save(self.model.state_dict(), self.training_save_dir / 'best_model.pth')
+                    self.model.save(self.training_save_dir, suffix="resnet18_best")
             self.lr_scheduler.step()
 
                 
