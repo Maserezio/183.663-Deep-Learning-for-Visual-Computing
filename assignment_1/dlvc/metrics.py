@@ -116,5 +116,6 @@ class Accuracy(PerformanceMeasure):
         if torch.sum(self.class_total) == 0:
             return 0.0
         per_class_acc = self.class_correct / self.class_total
-        return per_class_acc[torch.isfinite(per_class_acc)].mean().item()
+        return per_class_acc
+        # return per_class_acc[torch.isfinite(per_class_acc)].mean().item()
        

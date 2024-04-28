@@ -131,9 +131,12 @@ class ImgClassificationTrainer(BaseTrainer):
         average_loss = total_loss / len(self.train_data)
         accuracy = self.train_metric.accuracy()
         per_class_accuracy = self.train_metric.per_class_accuracy()
+        mean_per_class_accuracy = per_class_accuracy[torch.isfinite(per_class_accuracy)].mean().item()
         print(
-            f'Epoch {epoch_idx}: Train Loss {average_loss:.4f}, Accuracy {accuracy:.4f}, Per-Class Accuracy {per_class_accuracy:.4f}')
-        return average_loss, accuracy, per_class_accuracy
+            f'Epoch {epoch_idx}: Train Loss {average_loss:.4f}, Accuracy {accuracy:.4f}, Per-Class Accuracy {mean_per_class_accuracy:.4f}')
+        for i in range(len(self.val_metric.classes)):
+            print(f'Accuracy for class: {self.val_metric.classes[i]} is {per_class_accuracy[i]:.2f}')
+        return average_loss, accuracy, mean_per_class_accuracy
 
         
 
@@ -162,9 +165,12 @@ class ImgClassificationTrainer(BaseTrainer):
         average_loss = total_loss / len(self.val_data)
         accuracy = self.val_metric.accuracy()
         per_class_accuracy = self.val_metric.per_class_accuracy()
+        mean_per_class_accuracy = per_class_accuracy[torch.isfinite(per_class_accuracy)].mean().item()
         print(
-            f'Epoch {epoch_idx}: Val Loss {average_loss:.4f}, Accuracy {accuracy:.4f}, Per-Class Accuracy {per_class_accuracy:.4f}')
-        return average_loss, accuracy, per_class_accuracy
+            f'Epoch {epoch_idx}: Val Loss {average_loss:.4f}, Accuracy {accuracy:.4f}, Per-Class Accuracy {mean_per_class_accuracy:.4f}')
+        for i in range(len(self.val_metric.classes)):
+            print(f'Accuracy for class: {self.val_metric.classes[i]} is {per_class_accuracy[i]:.2f}')
+        return average_loss, accuracy, mean_per_class_accuracy
 
         
 
