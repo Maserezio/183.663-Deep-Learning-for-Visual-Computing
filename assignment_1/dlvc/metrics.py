@@ -93,9 +93,10 @@ class Accuracy(PerformanceMeasure):
         ## TODO implement
         acc = self.accuracy()
         per_class_acc = self.per_class_accuracy()
-        return f"Overall Accuracy: {acc:.4f}, Per class accuracy: {per_class_acc:.4f}"
+        mean_per_class_accuracy = per_class_acc[torch.isfinite(per_class_acc)].mean().item()
 
-
+        return f"Overall Accuracy: {acc:.4f}, Per class accuracy: {mean_per_class_accuracy:.4f}\n"
+    
     def accuracy(self) -> float:
         '''
         Compute and return the accuracy as a float between 0 and 1.

@@ -30,8 +30,8 @@ class DeepClassifier(nn.Module):
         Loads model from path
         Does not work with transfer model
         '''
-        
         ## TODO implement
-        self.net.load_state_dict(torch.load(path))
+        state_dict = torch.load(path, map_location=torch.device('cude' if torch.cuda.is_available() else 'cpu'))
+        self.net.load_state_dict({k.replace('net.', 'model.'): v for k, v in state_dict.items()})
         print(f"Model loaded from {path}")
         self.net.eval()
