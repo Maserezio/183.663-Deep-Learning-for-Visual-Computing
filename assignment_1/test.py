@@ -14,6 +14,7 @@ from dlvc.metrics import Accuracy
 from dlvc.datasets.cifar10 import CIFAR10Dataset
 from dlvc.datasets.dataset import Subset
 from dlvc.models.resnet18 import ModifiedResNet18
+from dlvc.models.vit import ViT
 
 
 def modified_resnet18(num_classes=10, pretrained=False):
@@ -33,11 +34,23 @@ def test(args):
     test_data = CIFAR10Dataset('cifar-10-batches-py/', subset=Subset.TEST, transform = transform)
     test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=64, shuffle=False)
         
-    # device = torch.device("cuda" if torch.cuda.is_available() and args.gpu_id != '-1' else "cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and args.gpu_id != '-1' else "cpu")
+    # device = torch.device("cpu")
 
     # resnet18 = ModifiedResNet18()
-    model = DeepClassifier(ModifiedResNet18())
+    vit = ViT(
+        image_size=32,
+        patch_size=4,
+        num_classes=10,
+        dim=512,
+        depth=6,
+        heads=8,
+        mlp_dim=512,
+        dropout=0.1,
+        emb_dropout=0.1
+    )
+    # vit = ViT()
+    model = DeepClassifier(vit)
     model.to(device)
     model.load(args.path_to_trained_model)
     
@@ -74,6 +87,6 @@ if __name__ == "__main__":
         args = args.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     args.gpu_id = 0 
-    args.path_to_trained_model = "saved_models/best_model.pth"
+    args.path_to_trained_model = "saved_models/model_vit_154.pth"
 
     test(args)
