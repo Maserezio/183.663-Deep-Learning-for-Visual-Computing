@@ -20,8 +20,10 @@ class WandBLogger:
                        project="dlvc",
                        group="artur-ohanian-01",
                        config = self.config)
+
             if run_name is None:
-                wandb.run.name = wandb.run.id    
+                # wandb.run.name = wandb.run.id
+                wandb.run.name = "Vit"
             else:
                 wandb.run.name = run_name  
 

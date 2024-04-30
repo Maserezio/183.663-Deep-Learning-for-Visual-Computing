@@ -13,6 +13,7 @@ from dlvc.datasets.cifar10 import CIFAR10Dataset
 from dlvc.datasets.dataset import Subset
 from dlvc.models.resnet18 import ResNet18
 from dlvc.models.cnn import CNN
+from dlvc.models.vit import ViT
 
 
 def test(args):
@@ -31,9 +32,22 @@ def test(args):
         model = DeepClassifier(ResNet18()).to(device)
     elif args.model == 'cnn':
         model = DeepClassifier(CNN()).to(device)
+    elif args.model == 'vit':
+            vit = ViT(
+                      image_size=32,
+                      patch_size=4,
+                      num_classes=10,
+                      dim=512,
+                      depth=6,
+                      heads=8,
+                      mlp_dim=512,
+                      dropout=0.1,
+                      emb_dropout=0.1)
+            model = DeepClassifier(vit)
+            model.to(device)
     else:
         raise ValueError("Model not supported")
-
+        
     model.load(args.path_to_model)
     
     loss_fn = torch.nn.CrossEntropyLoss()
@@ -67,4 +81,6 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
+#     args.path_to_trained_model = "saved_models/model_vit_154.pth"
+
     test(args)
