@@ -3,10 +3,8 @@ import argparse
 import os
 import torch
 import torchvision.transforms.v2 as v2
-from pathlib import Path
-import os
-import torch.nn as nn
 
+from pathlib import Path
 from dlvc.models.class_model import DeepClassifier  # etc. change to your model
 from dlvc.metrics import Accuracy
 from dlvc.trainer import ImgClassificationTrainer
@@ -14,7 +12,6 @@ from dlvc.datasets.cifar10 import CIFAR10Dataset
 from dlvc.datasets.dataset import Subset
 
 from dlvc.randomaug import RandAugment
-from torchvision.models import resnet18
 from dlvc.models.vit import ViT
 
 

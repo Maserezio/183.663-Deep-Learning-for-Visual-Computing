@@ -13,28 +13,29 @@ from dlvc.metrics import Accuracy
 from dlvc.trainer import ImgClassificationTrainer
 from dlvc.datasets.cifar10 import CIFAR10Dataset
 from dlvc.datasets.dataset import Subset
-from dlvc.models.resnet18 import ResNet18
+
 from dlvc.models.cnn import CNN
+from dlvc.randomaug import RandAugment
 
 def train(args):
     # Define data transformations based on augmentation flag
-    if args.aug:
-        train_transform = transforms.Compose([
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomCrop(32, padding=4),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
-    else:
-        train_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
 
+    train_transform = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomCrop(32, padding=4),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    
     val_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
+
+    if args.aug:
+        N = 2
+        M = 14
+        train_transform.transforms.insert(0, RandAugment(N, M))
 
     train_data = CIFAR10Dataset('cifar-10-batches-py', subset=Subset.TRAINING, transform=train_transform)
     val_data = CIFAR10Dataset('cifar-10-batches-py', subset=Subset.VALIDATION, transform=val_transform)
