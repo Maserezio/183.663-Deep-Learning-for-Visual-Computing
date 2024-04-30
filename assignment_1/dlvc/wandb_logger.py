@@ -14,11 +14,12 @@ class WandBLogger:
 
 
         if self.enabled:
-            wandb.init(entity="arthur-sogomonyan",
+            wandb.init(entity="artur-ohanian-01",
                         project="dlvc",
-                        group="artur_ai")
+                        group="artur-ohanian-01")
             if run_name is None:
-                wandb.run.name = wandb.run.id    
+                # wandb.run.name = wandb.run.id
+                wandb.run.name = "Vit"
             else:
                 wandb.run.name = run_name  
 

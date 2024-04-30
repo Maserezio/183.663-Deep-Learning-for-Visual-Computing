@@ -31,7 +31,8 @@ class DeepClassifier(nn.Module):
         Does not work with transfer model
         '''
         ## TODO implement
-        state_dict = torch.load(path, map_location=torch.device('cude' if torch.cuda.is_available() else 'cpu'))
-        self.net.load_state_dict({k.replace('net.', 'model.'): v for k, v in state_dict.items()})
+        state_dict = torch.load(path, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+        # self.net.load_state_dict({k.replace('transformer.', 'model.'): v for k, v in state_dict.items()})
+        self.net.load_state_dict(state_dict)
         print(f"Model loaded from {path}")
         self.net.eval()
