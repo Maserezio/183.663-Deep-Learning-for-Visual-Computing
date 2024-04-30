@@ -132,10 +132,10 @@ if __name__ == "__main__":
     args.add_argument('-d', '--gpu_id', default='0', type=str,
                       help='index of which GPU to use')
     args.add_argument('--num_epochs', default=200, type=int, help="Number of epochs")
-    args.add_argument('--opt', default='adamW', type=str, help="Optimizer")
+    args.add_argument('--opt', default='adam', type=str, help="Optimizer")
     args.add_argument('--scheduler', default='cos', type=str, help="Scheduler")
     args.add_argument('--lr', default=1e-4, type=float, help="Learning rate")
-    args.add_argument('--aug', default=True, type=bool, help="Augmentation")
+    args.add_argument('--aug', default=False, type=bool, help="Augmentation")
     args.add_argument('--patch', default='4', type=int, help="patch for ViT")
     args.add_argument('--dimhead', default="512", type=int)
     args.add_argument('--size', default='32', type=int)

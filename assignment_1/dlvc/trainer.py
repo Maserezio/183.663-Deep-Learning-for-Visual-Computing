@@ -135,7 +135,15 @@ class ImgClassificationTrainer(BaseTrainer):
         accuracy = self.train_metric.accuracy()
         per_class_accuracy = self.train_metric.per_class_accuracy()
         mean_per_class_accuracy = per_class_accuracy[torch.isfinite(per_class_accuracy)].mean().item()
-        
+
+        current_lr = self.optimizer.param_groups[0]['lr']
+        self.logger.log({
+            'epoch': epoch_idx,
+            'train_loss': average_loss,
+            'train_accuracy': accuracy,
+            'train_per_class_accuracy': mean_per_class_accuracy,
+            'learning_rate': current_lr
+        })
         print(f"______Epoch {epoch_idx}\n")
         print(f"Train Loss {average_loss:.2f}")
         print(self.train_metric)
@@ -190,11 +198,17 @@ class ImgClassificationTrainer(BaseTrainer):
         ## TODO implement
         for epoch in range(self.num_epochs):
             train_loss, train_accuracy, train_per_class_accuracy = self._train_epoch(epoch)
-            self.logger.log({'epoch': epoch, 'train_loss': train_loss, 'train_accuracy': train_accuracy})
+            # self.logger.log({'epoch': epoch, 'train_loss': train_loss, 'train_accuracy': train_accuracy})
 
             if (epoch + 1) % self.val_frequency == 0:
                 val_loss, val_accuracy, val_per_class_accuracy = self._val_epoch(epoch)
-                self.logger.log({'epoch': epoch, 'val_loss': val_loss, 'val_accuracy': val_accuracy})
+                # self.logger.log({'epoch': epoch, 'val_loss': val_loss, 'val_accuracy': val_accuracy})
+                self.logger.log({
+                    'epoch': epoch,
+                    'val_loss': val_loss,
+                    'val_accuracy': val_accuracy,
+                    'val_per_class_accuracy': val_per_class_accuracy
+                })
 
                 # Save the best model
                 if val_per_class_accuracy > self.best_accuracy:
