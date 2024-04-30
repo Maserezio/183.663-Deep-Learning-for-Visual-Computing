@@ -14,6 +14,7 @@ from dlvc.trainer import ImgClassificationTrainer
 from dlvc.datasets.cifar10 import CIFAR10Dataset
 from dlvc.datasets.dataset import Subset
 from dlvc.models.resnet18 import ResNet18
+from dlvc.models.cnn import CNN
 
 def train(args):
     # Define data transformations based on augmentation flag
@@ -40,7 +41,7 @@ def train(args):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = DeepClassifier(ResNet18()).to(device)
+    model = DeepClassifier(CNN()).to(device)
 
     if args.optimizer.lower() == 'adam':
         optimizer = Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)

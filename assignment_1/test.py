@@ -6,7 +6,7 @@ import torch.nn as nn
 import warnings
 warnings.filterwarnings("ignore")
 
-from torchvision.models import resnet18 # change to the model you want to test
+from dlvc.wandb_logger import WandBLogger
 from dlvc.models.class_model import DeepClassifier
 from dlvc.metrics import Accuracy
 from dlvc.datasets.cifar10 import CIFAR10Dataset
@@ -14,12 +14,6 @@ from dlvc.datasets.dataset import Subset
 from dlvc.models.resnet18 import ResNet18
 from dlvc.models.cnn import CNN
 
-def modified_resnet18(num_classes=10, pretrained=False):
-    model = resnet18(pretrained=pretrained)
-    # Change the final layer to match the number of CIFAR-10 classes
-    num_features = model.fc.in_features
-    model.fc = nn.Linear(num_features, num_classes)
-    return model
 
 def test(args):
    
@@ -62,12 +56,13 @@ def test(args):
 
     print(f"\nTest Loss: {test_loss:.2f}\n")
     print(test_metric)
+    WandBLogger(run_name = model.net.__class__.__name__).log({"test loss": test_loss, "test accuracy": test_metric.accuracy()})
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Testing')
     parser.add_argument('-m', '--model', default='resnet18', type=str,
                       help='model to be tested')
-    parser.add_argument('-p', '--path_to_model_files', default='saved_models/best_model.pth', type=str,
+    parser.add_argument('-p', '--path_to_model', default='saved_models/best_model.pth', type=str,
                       help='path to the trained model')
     
     args = parser.parse_args()

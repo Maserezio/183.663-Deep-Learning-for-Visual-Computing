@@ -97,7 +97,11 @@ class ImgClassificationTrainer(BaseTrainer):
         self.val_frequency = val_frequency
         self.best_accuracy = 0.0
 
-        self.logger = WandBLogger()
+        self.logger = WandBLogger(run_name = self.model.net.__class__.__name__, config = {'optimizer': self.optimizer.__class__.__name__,
+                                                                                          'learning_rate': self.optimizer.param_groups[0]['lr'],
+                                                                                          'scheduler': self.lr_scheduler.__class__.__name__,
+                                                                                          'num_epochs': self.num_epochs,
+                                                                                          'batch_size': self.batch_size})
         # Check if training save directory exists
         training_save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -169,7 +173,7 @@ class ImgClassificationTrainer(BaseTrainer):
 
         print(f"______Epoch {epoch_idx}\n")
         print(f"Val Loss {average_loss:.2f}")
-        print(self.train_metric)
+        print(self.val_metric)
     
         return average_loss, accuracy, mean_per_class_accuracy
 
