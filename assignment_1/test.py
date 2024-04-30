@@ -1,9 +1,7 @@
 ## Feel free to change the imports according to your implementation and needs
 import argparse
-import os
 import torch
 import torchvision.transforms.v2 as v2
-import os
 import torch.nn as nn
 import warnings
 warnings.filterwarnings("ignore")
@@ -13,8 +11,8 @@ from dlvc.models.class_model import DeepClassifier
 from dlvc.metrics import Accuracy
 from dlvc.datasets.cifar10 import CIFAR10Dataset
 from dlvc.datasets.dataset import Subset
-from dlvc.models.resnet18 import ModifiedResNet18
-
+from dlvc.models.resnet18 import ResNet18
+from dlvc.models.cnn import CNN
 
 def modified_resnet18(num_classes=10, pretrained=False):
     model = resnet18(pretrained=pretrained)
@@ -33,13 +31,16 @@ def test(args):
     test_data = CIFAR10Dataset('cifar-10-batches-py/', subset=Subset.TEST, transform = transform)
     test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=64, shuffle=False)
         
-    # device = torch.device("cuda" if torch.cuda.is_available() and args.gpu_id != '-1' else "cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # resnet18 = ModifiedResNet18()
-    model = DeepClassifier(ModifiedResNet18())
-    model.to(device)
-    model.load(args.path_to_trained_model)
+    if args.model == 'resnet18':
+        model = DeepClassifier(ResNet18()).to(device)
+    elif args.model == 'cnn':
+        model = DeepClassifier(CNN()).to(device)
+    else:
+        raise ValueError("Model not supported")
+
+    model.load(args.path_to_model)
     
     loss_fn = torch.nn.CrossEntropyLoss()
     
@@ -59,21 +60,16 @@ def test(args):
 
     test_loss = total_loss / len(test_data)
 
-    print(f"\nTest Loss: {test_loss:.4f}\n")
+    print(f"\nTest Loss: {test_loss:.2f}\n")
     print(test_metric)
-    for i in range(len(test_metric.classes)):
-        print(f'Accuracy for class: {test_metric.classes[i]} is {test_metric.per_class_accuracy()[i]:.2f}')
 
 if __name__ == "__main__":
-    ## Feel free to change this part - you do not have to use this argparse and gpu handling
-    args = argparse.ArgumentParser(description='Training')
-    args.add_argument('-d', '--gpu_id', default='5', type=str,
-                      help='index of which GPU to use')
+    parser = argparse.ArgumentParser(description='Testing')
+    parser.add_argument('-m', '--model', default='resnet18', type=str,
+                      help='model to be tested')
+    parser.add_argument('-p', '--path_to_model_files', default='saved_models/best_model.pth', type=str,
+                      help='path to the trained model')
     
-    if not isinstance(args, tuple):
-        args = args.parse_args()
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
-    args.gpu_id = 0 
-    args.path_to_trained_model = "saved_models/best_model.pth"
-
+    args = parser.parse_args()
+    
     test(args)

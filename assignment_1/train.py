@@ -1,65 +1,71 @@
-## Feel free to change the imports according to your implementation and needs
 import argparse
-import os
 import torch
-import torchvision.transforms.v2 as v2
-from pathlib import Path
-import os
 import torch.nn as nn
+import torchvision.transforms as transforms
+from torch.optim.lr_scheduler import ExponentialLR, StepLR
+from torch.optim import Adam, AdamW, SGD
+from pathlib import Path
+import warnings
+warnings.filterwarnings("ignore")
 
-from dlvc.models.class_model import DeepClassifier  # etc. change to your model
+from dlvc.models.class_model import DeepClassifier
 from dlvc.metrics import Accuracy
 from dlvc.trainer import ImgClassificationTrainer
 from dlvc.datasets.cifar10 import CIFAR10Dataset
 from dlvc.datasets.dataset import Subset
-
-from torchvision.models import resnet18
-
-
-def modified_resnet18(num_classes=10, pretrained=False):
-    model = resnet18(pretrained=pretrained)
-    # Change the final layer to match the number of CIFAR-10 classes
-    num_features = model.fc.in_features
-    model.fc = nn.Linear(num_features, num_classes)
-    return model
-
+from dlvc.models.resnet18 import ResNet18
 
 def train(args):
-    ### Implement this function so that it trains a specific model as described in the instruction.md file
-    ## feel free to change the code snippets given here, they are just to give you an initial structure 
-    ## but do not have to be used if you want to do it differently
-    ## For device handling you can take a look at pytorch documentation
+    # Define data transformations based on augmentation flag
+    if args.aug:
+        train_transform = transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomCrop(32, padding=4),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+    else:
+        train_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
 
-    train_transform = v2.Compose([v2.ToImage(),
-                                  v2.ToDtype(torch.float32, scale=True),
-                                  v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-
-    val_transform = v2.Compose([v2.ToImage(),
-                                v2.ToDtype(torch.float32, scale=True),
-                                v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    val_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
 
     train_data = CIFAR10Dataset('cifar-10-batches-py', subset=Subset.TRAINING, transform=train_transform)
     val_data = CIFAR10Dataset('cifar-10-batches-py', subset=Subset.VALIDATION, transform=val_transform)
 
-    device = torch.device("cuda" if torch.cuda.is_available() and args.gpu_id != '-1' else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # model = DeepClassifier(resnet18(pretrained=False))
-    model = DeepClassifier(modified_resnet18()).to(device)
-    # num_features = model.fc.in_features
-    # model.fc = nn.Linear(num_features, model.num_classes())
-    model.to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
-    loss_fn = torch.nn.CrossEntropyLoss()
+    model = DeepClassifier(ResNet18()).to(device)
+
+    if args.optimizer.lower() == 'adam':
+        optimizer = Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+    elif args.optimizer.lower() == 'adamw':
+        optimizer = AdamW(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+    elif args.optimizer.lower() == 'sgd':
+        optimizer = SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.weight_decay)
+    else:
+        raise ValueError("Optimizer not supported")
+    
+    loss_fn = nn.CrossEntropyLoss()
 
     train_metric = Accuracy(classes=train_data.classes)
     val_metric = Accuracy(classes=val_data.classes)
     val_frequency = 5
 
-    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
-
+    if args.scheduler.lower() == 'exp':
+        lr_scheduler = ExponentialLR(optimizer, gamma=args.scheduler_gamma)
+    elif args.scheduler.lower() == 'step':
+        lr_scheduler = StepLR(optimizer, step_size=args.scheduler_step_size, gamma=args.scheduler_gamma)
+    else:
+        raise ValueError("Scheduler not supported")
+    
     model_save_dir = Path("saved_models")
-    model_save_dir.mkdir(exist_ok=True)
-
+    
     trainer = ImgClassificationTrainer(model,
                                        optimizer,
                                        loss_fn,
@@ -71,21 +77,22 @@ def train(args):
                                        device,
                                        args.num_epochs,
                                        model_save_dir,
-                                       batch_size=128,  # feel free to change
+                                       batch_size=args.batch_size,
                                        val_frequency=val_frequency)
     trainer.train()
 
-
 if __name__ == "__main__":
-    ## Feel free to change this part - you do not have to use this argparse and gpu handling
-    args = argparse.ArgumentParser(description='Training')
-    args.add_argument('-d', '--gpu_id', default='0', type=str,
-                      help='index of which GPU to use')
+    parser = argparse.ArgumentParser(description='Training')
+    parser.add_argument('-e', '--num_epochs', default=15, type=int, help='number of epochs for training')
+    parser.add_argument('-lr', '--learning_rate', default=0.001, type=float, help='learning rate for optimizer')
+    parser.add_argument('-opt', '--optimizer', default='adam', type=str, help='optimizer to use (adam, adamw, sgd)')
+    parser.add_argument('-sch', '--scheduler', default='exp', type=str, help='learning rate scheduler to use (exp, step)')
+    parser.add_argument('-sg', '--scheduler_gamma', default=0.9, type=float, help='gamma value for the scheduler')
+    parser.add_argument('-ss', '--scheduler_step_size', default=1, type=int, help='step size for the scheduler')
+    parser.add_argument('-bs', '--batch_size', default=128, type=int, help='batch size for training')
+    parser.add_argument('-wd', '--weight_decay', default=1e-4, type=float, help='weight decay for regularization')
+    parser.add_argument('--aug', action='store_true', help='enable data augmentation')
 
-    if not isinstance(args, tuple):
-        args = args.parse_args()
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
-    args.gpu_id = 0
-    args.num_epochs = 30
+    args = parser.parse_args()
 
     train(args)

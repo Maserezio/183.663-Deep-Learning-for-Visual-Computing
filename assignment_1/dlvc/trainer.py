@@ -125,17 +125,17 @@ class ImgClassificationTrainer(BaseTrainer):
 
             total_loss += loss.item()
 
-            # print(output.shape, target.shape)
             self.train_metric.update(output, target)
 
         average_loss = total_loss / len(self.train_data)
         accuracy = self.train_metric.accuracy()
         per_class_accuracy = self.train_metric.per_class_accuracy()
         mean_per_class_accuracy = per_class_accuracy[torch.isfinite(per_class_accuracy)].mean().item()
-        print(
-            f'Epoch {epoch_idx}: Train Loss {average_loss:.4f}, Accuracy {accuracy:.4f}, Per-Class Accuracy {mean_per_class_accuracy:.4f}')
-        for i in range(len(self.val_metric.classes)):
-            print(f'Accuracy for class: {self.val_metric.classes[i]} is {per_class_accuracy[i]:.2f}')
+        
+        print(f"______Epoch {epoch_idx}\n")
+        print(f"Train Loss {average_loss:.2f}")
+        print(self.train_metric)
+    
         return average_loss, accuracy, mean_per_class_accuracy
 
         
@@ -166,10 +166,11 @@ class ImgClassificationTrainer(BaseTrainer):
         accuracy = self.val_metric.accuracy()
         per_class_accuracy = self.val_metric.per_class_accuracy()
         mean_per_class_accuracy = per_class_accuracy[torch.isfinite(per_class_accuracy)].mean().item()
-        print(
-            f'Epoch {epoch_idx}: Val Loss {average_loss:.4f}, Accuracy {accuracy:.4f}, Per-Class Accuracy {mean_per_class_accuracy:.4f}')
-        for i in range(len(self.val_metric.classes)):
-            print(f'Accuracy for class: {self.val_metric.classes[i]} is {per_class_accuracy[i]:.2f}')
+
+        print(f"______Epoch {epoch_idx}\n")
+        print(f"Val Loss {average_loss:.2f}")
+        print(self.train_metric)
+    
         return average_loss, accuracy, mean_per_class_accuracy
 
         
@@ -194,9 +195,12 @@ class ImgClassificationTrainer(BaseTrainer):
                 # Save the best model
                 if val_per_class_accuracy > self.best_accuracy:
                     self.best_accuracy = val_per_class_accuracy
-                    # torch.save(self.model.state_dict(), self.training_save_dir / 'best_model.pth')
-                    self.model.save(self.training_save_dir, suffix="resnet18_best")
-            self.lr_scheduler.step()
+                    self.best_accuracy = val_per_class_accuracy
+                    lr = self.optimizer.param_groups[0]['lr']
+                    optimizer_name = self.optimizer.__class__.__name__
+                    scheduler_name = self.lr_scheduler.__class__.__name__
+                    suffix = f"_l_rate_{lr}_optim_{optimizer_name}_scheduler_{scheduler_name}_num_epochs_{self.num_epochs}_batch_size_{self.batch_size}"
+                    self.model.save(self.training_save_dir, suffix=suffix)            
 
                 
 

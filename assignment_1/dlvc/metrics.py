@@ -93,9 +93,14 @@ class Accuracy(PerformanceMeasure):
         ## TODO implement
         acc = self.accuracy()
         per_class_acc = self.per_class_accuracy()
-        mean_per_class_accuracy = per_class_acc[torch.isfinite(per_class_acc)].mean().item()
+        mean_per_class_acc = per_class_acc[torch.isfinite(per_class_acc)].mean().item()
+        
+        result = f"Overall Accuracy: {acc:.2f}, Per class accuracy: {mean_per_class_acc:.2f}\n\n"
 
-        return f"Overall Accuracy: {acc:.4f}, Per class accuracy: {mean_per_class_accuracy:.4f}\n"
+        for i in range(len(self.classes)):
+            result += f"Accuracy for class {self.classes[i]} is {per_class_acc[i]:.2f}\n"
+
+        return result
     
     def accuracy(self) -> float:
         '''
