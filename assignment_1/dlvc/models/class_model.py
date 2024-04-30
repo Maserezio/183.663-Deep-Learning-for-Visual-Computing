@@ -32,8 +32,10 @@ class DeepClassifier(nn.Module):
         '''
         ## TODO implement
         state_dict = torch.load(path, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
-        self.net.load_state_dict({k.replace('net.', ''): v for k, v in state_dict.items()})
-        # self.net.load_state_dict(state_dict)
+        if( self.net.__class__.__name__ == 'ResNet18' or self.net.__class__.__name__ == 'CNN'):
+            self.net.load_state_dict({k.replace('net.', ''): v for k, v in state_dict.items()})
+        else:
+            self.net.load_state_dict(state_dict)
         print(f"Model loaded from {path}")
 
         self.net.eval()
