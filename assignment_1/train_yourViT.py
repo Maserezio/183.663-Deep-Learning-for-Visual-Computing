@@ -24,7 +24,23 @@ def train(args):
     ## but do not have to be used if you want to do it differently
     ## For device handling you can take a look at pytorch documentation
 
+    # train_transform = v2.Compose([v2.ToImage(),
+    #                               v2.RandomHorizontalFlip(),
+    #                               v2.ToDtype(torch.float32, scale=True),
+    #                               v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    #
+    # val_transform = v2.Compose([v2.ToImage(),
+    #                             v2.ToDtype(torch.float32, scale=True),
+    #                             v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    imsize = int(args.size)
+    if args.net == "vit_timm":
+        size = 384
+    else:
+        size = imsize
+
     train_transform = v2.Compose([v2.ToImage(),
+                                  v2.RandomCrop(32, padding=4),
+                                  v2.Resize(size),
                                   v2.RandomHorizontalFlip(),
                                   v2.ToDtype(torch.float32, scale=True),
                                   v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
@@ -32,6 +48,20 @@ def train(args):
     val_transform = v2.Compose([v2.ToImage(),
                                 v2.ToDtype(torch.float32, scale=True),
                                 v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+
+    # train_transform = v2.Compose([
+    #     v2.RandomCrop(32, padding=4),
+    #     v2.Resize(size),
+    #     v2.RandomHorizontalFlip(),
+    #     v2.ToDtype(torch.float32, scale=True),
+    #     v2.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    # ])
+    #
+    # val_transform = v2.Compose([
+    #     v2.Resize(size),
+    #     v2.ToDtype(torch.float32, scale=True),
+    #     v2.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    # ])
 
     if args.aug:
         N = 2
@@ -108,9 +138,11 @@ if __name__ == "__main__":
     args.add_argument('--opt', default='adamW', type=str, help="Optimizer")
     args.add_argument('--scheduler', default='cos', type=str, help="Scheduler")
     args.add_argument('--lr', default=1e-4, type=float, help="Learning rate")
-    args.add_argument('--aug', default=False, type=bool, help="Augmentation")
+    args.add_argument('--aug', default=True, type=bool, help="Augmentation")
     args.add_argument('--patch', default='4', type=int, help="patch for ViT")
     args.add_argument('--dimhead', default="512", type=int)
+    args.add_argument('--size', default='32', type=int)
+    args.add_argument('--net', default='', type=str)
 
     if not isinstance(args, tuple):
         args = args.parse_args()

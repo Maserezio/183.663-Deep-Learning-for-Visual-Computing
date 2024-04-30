@@ -32,6 +32,8 @@ def TranslateXabs(img, v):  # [-150, 150] => percentage: [-0.45, 0.45]
     assert 0 <= v
     if random.random() > 0.5:
         v = -v
+    if isinstance(img, np.ndarray):
+        img = Image.fromarray(img)
     return img.transform(img.size, PIL.Image.AFFINE, (1, 0, v, 0, 1, 0))
 
 
@@ -126,6 +128,7 @@ def CutoutAbs(img, v):  # [0, 60] => percentage: [0, 0.2]
     # assert 0 <= v <= 20
     if v < 0:
         return img
+    # print(img)
     w, h = img.size
     x0 = np.random.uniform(w)
     y0 = np.random.uniform(h)
@@ -254,9 +257,12 @@ class RandAugment:
         self.augment_list = augment_list()
 
     def __call__(self, img):
+        if isinstance(img, np.ndarray):
+            img = Image.fromarray(img)
         ops = random.choices(self.augment_list, k=self.n)
         for op, minval, maxval in ops:
             val = (float(self.m) / 30) * float(maxval - minval) + minval
             img = op(img, val)
-
+        # if isinstance(img, Image.Image):  # check if the image is a PIL Image
+        #     img = np.array(img)
         return img
