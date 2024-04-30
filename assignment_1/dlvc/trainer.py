@@ -198,6 +198,7 @@ class ImgClassificationTrainer(BaseTrainer):
         ## TODO implement
         for epoch in range(self.num_epochs):
             train_loss, train_accuracy, train_per_class_accuracy = self._train_epoch(epoch)
+            self.lr_scheduler.step()
             # self.logger.log({'epoch': epoch, 'train_loss': train_loss, 'train_accuracy': train_accuracy})
 
             if (epoch + 1) % self.val_frequency == 0:
