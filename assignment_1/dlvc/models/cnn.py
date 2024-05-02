@@ -11,6 +11,7 @@ class CNN(nn.Module):
         self.pool = nn.MaxPool2d(2, 2)
         self.fc1 = nn.Linear(128 * 4 * 4, 256)
         self.fc2 = nn.Linear(256, 10)
+        self.dropout = nn.Dropout(p=0.5)
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
@@ -18,5 +19,6 @@ class CNN(nn.Module):
         x = self.pool(F.relu(self.conv3(x)))
         x = x.view(-1, 128 * 4 * 4)
         x = F.relu(self.fc1(x))
+        x = self.dropout(x)
         x = self.fc2(x)
         return x

@@ -6,6 +6,7 @@ class ResNet18(nn.Module):
         super(ResNet18, self).__init__()
         self.model = resnet18(pretrained=pretrained)
         num_features = self.model.fc.in_features
+        self.dropout = nn.Dropout(p=0.5)
         self.model.fc = nn.Linear(num_features, num_classes)
 
 
