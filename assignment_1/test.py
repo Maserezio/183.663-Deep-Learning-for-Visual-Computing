@@ -76,7 +76,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Testing')
     parser.add_argument('-m', '--model', default='vit', type=str,
                       help='model to be tested')
-    parser.add_argument('-p', '--path_to_model', default='saved_models/ViT__l_rate_0.0001_optim_Adam_scheduler_CosineAnnealingLR_num_epochs_200_batch_size_128.pth', type=str,
+    parser.add_argument('-p', '--path_to_model', default='saved_models/ViT__l_rate_9.549150281252641e-06_optim_Adam_scheduler_CosineAnnealingLR_num_epochs_200_batch_size_128.pth', type=str,
                       help='path to the trained model')
     
     args = parser.parse_args()

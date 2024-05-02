@@ -7,6 +7,8 @@ from torch.utils.data import DataLoader
 
 # for wandb users:
 from dlvc.wandb_logger import WandBLogger
+
+
 # from wandb_logger import WandBLogger
 
 class BaseTrainer(metaclass=ABCMeta):
@@ -38,12 +40,14 @@ class BaseTrainer(metaclass=ABCMeta):
 
         pass
 
+
 class ImgClassificationTrainer(BaseTrainer):
     """
     Class that stores the logic for training a model for image classification.
     """
-    def __init__(self, 
-                 model, 
+
+    def __init__(self,
+                 model,
                  optimizer,
                  loss_fn,
                  lr_scheduler,
@@ -52,7 +56,7 @@ class ImgClassificationTrainer(BaseTrainer):
                  train_data,
                  val_data,
                  device,
-                 num_epochs: int, 
+                 num_epochs: int,
                  training_save_dir: Path,
                  batch_size: int = 4,
                  val_frequency: int = 5) -> None:
@@ -79,9 +83,9 @@ class ImgClassificationTrainer(BaseTrainer):
             - Optionally use weights & biases for tracking metrics and loss: initializer W&B logger
 
         '''
-        
 
         ## TODO implement
+        self.last_val_loss = None
         self.model = model
         self.optimizer = optimizer
         self.loss_fn = loss_fn
@@ -97,11 +101,12 @@ class ImgClassificationTrainer(BaseTrainer):
         self.val_frequency = val_frequency
         self.best_accuracy = 0.0
 
-        self.logger = WandBLogger(run_name = self.model.net.__class__.__name__, config = {'optimizer': self.optimizer.__class__.__name__,
-                                                                                          'learning_rate': self.optimizer.param_groups[0]['lr'],
-                                                                                          'scheduler': self.lr_scheduler.__class__.__name__,
-                                                                                          'num_epochs': self.num_epochs,
-                                                                                          'batch_size': self.batch_size})
+        self.logger = WandBLogger(run_name=self.model.net.__class__.__name__,
+                                  config={'optimizer': self.optimizer.__class__.__name__,
+                                          'learning_rate': self.optimizer.param_groups[0]['lr'],
+                                          'scheduler': self.lr_scheduler.__class__.__name__,
+                                          'num_epochs': self.num_epochs,
+                                          'batch_size': self.batch_size})
         # Check if training save directory exists
         training_save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -126,6 +131,8 @@ class ImgClassificationTrainer(BaseTrainer):
             loss = self.loss_fn(output, target)
             loss.backward()
             self.optimizer.step()
+            # if not isinstance(self.lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+            #     self.lr_scheduler.step()  # for step, cos scheduler
 
             total_loss += loss.item()
 
@@ -147,13 +154,10 @@ class ImgClassificationTrainer(BaseTrainer):
         print(f"______Epoch {epoch_idx}\n")
         print(f"Train Loss {average_loss:.2f}")
         print(self.train_metric)
-    
+
         return average_loss, accuracy, mean_per_class_accuracy
 
-        
-
-
-    def _val_epoch(self, epoch_idx:int) -> Tuple[float, float, float]:
+    def _val_epoch(self, epoch_idx: int) -> Tuple[float, float, float]:
         """
         Validation logic for one epoch. 
         Prints current metrics at end of epoch.
@@ -182,10 +186,8 @@ class ImgClassificationTrainer(BaseTrainer):
         print(f"______Epoch {epoch_idx}\n")
         print(f"Val Loss {average_loss:.2f}")
         print(self.val_metric)
-    
-        return average_loss, accuracy, mean_per_class_accuracy
 
-        
+        return average_loss, accuracy, mean_per_class_accuracy
 
     def train(self) -> None:
         """
@@ -198,7 +200,8 @@ class ImgClassificationTrainer(BaseTrainer):
         ## TODO implement
         for epoch in range(self.num_epochs):
             train_loss, train_accuracy, train_per_class_accuracy = self._train_epoch(epoch)
-            self.lr_scheduler.step()
+            # if not isinstance(self.lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+            #     self.lr_scheduler.step()  # for step, cos scheduler
             # self.logger.log({'epoch': epoch, 'train_loss': train_loss, 'train_accuracy': train_accuracy})
 
             if (epoch + 1) % self.val_frequency == 0:
@@ -210,23 +213,24 @@ class ImgClassificationTrainer(BaseTrainer):
                     'val_accuracy': val_accuracy,
                     'val_per_class_accuracy': val_per_class_accuracy
                 })
-
-                # Save the best model
+                # self.lr_scheduler.step(self.optimizer)
+                if isinstance(self.lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    self.lr_scheduler.step(val_loss)
+                    # self.lr_scheduler.step(self.optimizer)
+                # else:
+                #     self.lr_scheduler.step()
+                    # Save the best model
                 if val_per_class_accuracy > self.best_accuracy:
                     self.best_accuracy = val_per_class_accuracy
-                    self.best_accuracy = val_per_class_accuracy
+                    # lr = self.optimizer.param_groups[0]['lr']
                     lr = self.optimizer.param_groups[0]['lr']
                     optimizer_name = self.optimizer.__class__.__name__
                     scheduler_name = self.lr_scheduler.__class__.__name__
                     suffix = f"_l_rate_{lr}_optim_{optimizer_name}_scheduler_{scheduler_name}_num_epochs_{self.num_epochs}_batch_size_{self.batch_size}"
-                    self.model.save(self.training_save_dir, suffix=suffix)            
+                    self.model.save(self.training_save_dir, suffix=suffix)
 
-                
-
-
-
-
-            
-            
-
+            else:
+                # Only log and step the scheduler with the last known validation loss if not validating this epoch
+                if not isinstance(self.lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    self.lr_scheduler.step()
 

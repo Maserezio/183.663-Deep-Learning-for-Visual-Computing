@@ -93,6 +93,8 @@ def train(args):
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     elif args.opt == "sgd":
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
+    elif args.opt == "rmsprop":
+        optimizer = torch.optim.RMSprop(model.parameters(), lr=args.lr)
 
     loss_fn = torch.nn.CrossEntropyLoss()
 
@@ -101,11 +103,13 @@ def train(args):
     val_frequency = 5
 
     if args.scheduler == "step":
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
     elif args.scheduler == "exp":
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
     elif args.scheduler == "cos":
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, args.num_epochs)
+    elif args.scheduler == "plateau":
+        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
 
     model_save_dir = Path("saved_models")
     model_save_dir.mkdir(exist_ok=True)
@@ -132,9 +136,9 @@ if __name__ == "__main__":
     args.add_argument('-d', '--gpu_id', default='0', type=str,
                       help='index of which GPU to use')
     args.add_argument('--num_epochs', default=200, type=int, help="Number of epochs")
-    args.add_argument('--opt', default='adam', type=str, help="Optimizer")
+    args.add_argument('--opt', default='sgd', type=str, help="Optimizer")
     args.add_argument('--scheduler', default='cos', type=str, help="Scheduler")
-    args.add_argument('--lr', default=1e-4, type=float, help="Learning rate")
+    args.add_argument('--lr', default=1e-3, type=float, help="Learning rate")
     args.add_argument('--aug', default=False, type=bool, help="Augmentation")
     args.add_argument('--patch', default='4', type=int, help="patch for ViT")
     args.add_argument('--dimhead', default="512", type=int)
