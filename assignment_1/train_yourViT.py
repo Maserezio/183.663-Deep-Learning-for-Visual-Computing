@@ -5,6 +5,9 @@ import torch
 import torchvision.transforms.v2 as v2
 
 from pathlib import Path
+
+from torch import nn
+
 from dlvc.models.class_model import DeepClassifier  # etc. change to your model
 from dlvc.metrics import Accuracy
 from dlvc.trainer import ImgClassificationTrainer
@@ -46,20 +49,6 @@ def train(args):
                                 v2.ToDtype(torch.float32, scale=True),
                                 v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-    # train_transform = v2.Compose([
-    #     v2.RandomCrop(32, padding=4),
-    #     v2.Resize(size),
-    #     v2.RandomHorizontalFlip(),
-    #     v2.ToDtype(torch.float32, scale=True),
-    #     v2.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    # ])
-    #
-    # val_transform = v2.Compose([
-    #     v2.Resize(size),
-    #     v2.ToDtype(torch.float32, scale=True),
-    #     v2.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    # ])
-
     if args.aug:
         N = 2
         M = 14
@@ -71,17 +60,22 @@ def train(args):
     device = torch.device("cuda" if torch.cuda.is_available() and args.gpu_id != '-1' else "cpu")
 
     # model = DeepClassifier(resnet18(pretrained=False))
-    vit = ViT(
-        image_size=32,
-        patch_size=args.patch,
-        num_classes=10,
-        dim=int(args.dimhead),
-        depth=6,
-        heads=8,
-        mlp_dim=512,
-        dropout=0.1,
-        emb_dropout=0.1
-    )
+    if args.net == "vit_timm":
+        import timm
+        vit = timm.create_model("vit_base_patch16_384", pretrained=True)
+        vit.head = nn.Linear(vit.head.in_features, 10)
+    else:
+        vit = ViT(
+            image_size=32,
+            patch_size=args.patch,
+            num_classes=10,
+            dim=int(args.dimhead),
+            depth=6,
+            heads=8,
+            mlp_dim=512,
+            dropout=0.1,
+            emb_dropout=0.1
+        )
     model = DeepClassifier(vit).to(device)
     # num_features = model.fc.in_features
     # model.fc = nn.Linear(num_features, model.num_classes())
@@ -125,7 +119,7 @@ def train(args):
                                        device,
                                        args.num_epochs,
                                        model_save_dir,
-                                       batch_size=128,  # feel free to change
+                                       batch_size=128,
                                        val_frequency=val_frequency)
     trainer.train()
 
@@ -136,9 +130,9 @@ if __name__ == "__main__":
     args.add_argument('-d', '--gpu_id', default='0', type=str,
                       help='index of which GPU to use')
     args.add_argument('--num_epochs', default=200, type=int, help="Number of epochs")
-    args.add_argument('--opt', default='sgd', type=str, help="Optimizer")
+    args.add_argument('--opt', default='adam', type=str, help="Optimizer")
     args.add_argument('--scheduler', default='cos', type=str, help="Scheduler")
-    args.add_argument('--lr', default=1e-3, type=float, help="Learning rate")
+    args.add_argument('--lr', default=1e-4, type=float, help="Learning rate")
     args.add_argument('--aug', default=False, type=bool, help="Augmentation")
     args.add_argument('--patch', default='4', type=int, help="patch for ViT")
     args.add_argument('--dimhead', default="512", type=int)
