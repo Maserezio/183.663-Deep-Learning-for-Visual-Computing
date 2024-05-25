@@ -6,3 +6,4 @@ saved_models/
 cifar-10-batches-py/
 wandb/
 slides/
+assignment_2/path_to_dataset/

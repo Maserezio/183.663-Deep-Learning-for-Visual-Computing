@@ -9,25 +9,29 @@ from torchvision.models.segmentation import fcn_resnet50
 from dlvc.models.segment_model import DeepSegmenter
 from dlvc.dataset.oxfordpets import  OxfordPetsCustom
 from dlvc.metrics import SegMetrics
-from dlvc.trainer import ImgSemSegTrainer
+from dlvc.trainer_reference_impl import ImgSemSegTrainer
 
 
 
 def train(args):
 
-    train_transform = v2.Compose([v2.ToImage(), 
+    train_transform = v2.Compose([
+                            v2.ToImage(), 
                             v2.ToDtype(torch.float32, scale=True),
                             v2.Resize(size=(64,64), interpolation=v2.InterpolationMode.NEAREST),
                             v2.Normalize(mean = [0.485, 0.456,0.406], std = [0.229, 0.224, 0.225])])
-    train_transform2 = v2.Compose([v2.ToImage(), 
+    train_transform2 = v2.Compose([
+                            v2.ToImage(), 
                             v2.ToDtype(torch.long, scale=False),
                             v2.Resize(size=(64,64), interpolation=v2.InterpolationMode.NEAREST)])#,
     
-    val_transform = v2.Compose([v2.ToImage(), 
+    val_transform = v2.Compose([
+                            v2.ToImage(), 
                             v2.ToDtype(torch.float32, scale=True),
                             v2.Resize(size=(64,64), interpolation=v2.InterpolationMode.NEAREST),
                             v2.Normalize(mean = [0.485, 0.456,0.406], std = [0.229, 0.224, 0.225])])
-    val_transform2 = v2.Compose([v2.ToImage(), 
+    val_transform2 = v2.Compose([
+                            v2.ToImage(), 
                             v2.ToDtype(torch.long, scale=False),
                             v2.Resize(size=(64,64), interpolation=v2.InterpolationMode.NEAREST)])
 
@@ -47,11 +51,11 @@ def train(args):
 
 
 
-    device = ...
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    model = DeepSegmenter(...)
-    optimizer = ...
-    loss_fn = ...
+    model = DeepSegmenter(fcn_resnet50()).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    loss_fn = torch.nn.CrossEntropyLoss()
     
     train_metric = SegMetrics(classes=train_data.classes_seg)
     val_metric = SegMetrics(classes=val_data.classes_seg)
@@ -60,7 +64,7 @@ def train(args):
     model_save_dir = Path("saved_models")
     model_save_dir.mkdir(exist_ok=True)
 
-    lr_scheduler = ...
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     
     trainer = ImgSemSegTrainer(model, 
                     optimizer,
@@ -71,10 +75,10 @@ def train(args):
                     train_data,
                     val_data,
                     device,
-                    args.num_epochs, 
+                    15, 
                     model_save_dir,
-                    batch_size=64,
-                    val_frequency = val_frequency)
+                    batch_size=16,
+                    val_frequency = 5)
     trainer.train()
 
     # see Reference implementation of ImgSemSegTrainer

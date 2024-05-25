@@ -6,6 +6,7 @@ class DeepSegmenter(nn.Module):
     def __init__(self, net: nn.Module):
         super().__init__()
         self.net = net
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def forward(self, x):
         return self.net(x)

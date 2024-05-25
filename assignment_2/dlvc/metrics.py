@@ -46,8 +46,10 @@ class SegMetrics(PerformanceMeasure):
         '''
         Resets the internal state.
         '''
-        ## TODO implement
-        pass
+        self.intersection = torch.zeros(len(self.classes))
+        self.union = torch.zeros(len(self.classes))
+        self.total_pixels = torch.zeros(len(self.classes))
+
 
 
 
@@ -61,8 +63,17 @@ class SegMetrics(PerformanceMeasure):
         Make sure to not include pixels of value 255 in the calculation since those are to be ignored. 
         '''
 
-       ##TODO implement
-        pass
+        for b in range(prediction.shape[0]):
+            for c in range(len(self.classes)):
+                class_mask = target[b] == c
+                pred_mask = prediction[b].argmax(dim=0) == c
+                intersection = (class_mask & pred_mask).sum().float()
+                union = (class_mask | pred_mask).sum().float()
+                total_pixels = class_mask.sum().float()
+
+                self.intersection[c] += intersection
+                self.union[c] += union
+                self.total_pixels[c] += total_pixels
    
 
     def __str__(self):
@@ -70,8 +81,8 @@ class SegMetrics(PerformanceMeasure):
         Return a string representation of the performance, mean IoU.
         e.g. "mIou: 0.54"
         '''
-        ##TODO implement
-        pass
+        return f"mIoU: {self.mIoU():.4f}"
+
           
 
     
@@ -82,8 +93,8 @@ class SegMetrics(PerformanceMeasure):
         If the denominator for IoU calculation for one of the classes is 0,
         use 0 as IoU for this class.
         '''
-        ##TODO implement
-        pass
+        iou = (self.intersection / self.union).mean()
+        return iou.item() if not torch.isnan(iou) else 0.0
 
 
 
