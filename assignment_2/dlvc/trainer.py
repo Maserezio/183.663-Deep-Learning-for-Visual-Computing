@@ -133,7 +133,7 @@ class ImgSemSegTrainer(BaseTrainer):
 
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = batch
-            labels = labels.squeeze(1)-1
+            labels = labels.squeeze(1) - int(self.subtract_one)
 
             batch_size = inputs.shape[0] # b x ..?
 
@@ -175,7 +175,7 @@ class ImgSemSegTrainer(BaseTrainer):
             with torch.no_grad():
                 # get the inputs; data is a tuple of [inputs, labels]
                 inputs, labels = batch
-                labels = labels.squeeze(1)-1
+                labels = labels.squeeze(1) - int(self.subtract_one)
                 batch_size = inputs.shape[0] 
 
                 # Make predictions for this batch
