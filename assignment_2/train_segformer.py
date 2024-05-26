@@ -71,12 +71,21 @@ def train(args):
     if args.dataset == 'oxford':
         ##TODO update the encoder weights of the model with the loaded weights of the pretrained model
         # e.g. load pretrained weights with: state_dict = torch.load("path to model", map_location='cpu')
-        state_dict = torch.load("saved_models/SegFormer_model_best.pth", map_location='cpu')
+        state_dict = torch.load("saved_models/SegFormer_pretrained.pth", map_location='cpu')
         model.net.encoder.load_state_dict(state_dict, strict=False)
-        # pass
-        ##
+
+        if args.freeze_encoder:
+            # Option B: Freeze the encoder
+            for param in model.net.encoder.parameters():
+                param.requires_grad = False
+
+            optimizer = torch.optim.AdamW(model.net.decoder.parameters(), lr=0.001)
+        else:
+            # Option A: Fine-tune entire model
+            optimizer = torch.optim.AdamW(model.parameters(), lr=0.001)
+    else:
+        optimizer = torch.optim.AdamW(model.parameters(), lr=0.001)
     model.to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.0001)
 
     ignore_index = 255 if args.dataset == "city" else -1
     loss_fn = torch.nn.CrossEntropyLoss(ignore_index=ignore_index) # remember to ignore label value 255 when training with the Cityscapes datset
@@ -88,7 +97,8 @@ def train(args):
     model_save_dir = Path("saved_models")
     model_save_dir.mkdir(exist_ok=True)
 
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.98)
     
     trainer = ImgSemSegTrainer(model, 
                     optimizer,
@@ -101,7 +111,7 @@ def train(args):
                     device,
                     args.num_epochs, 
                     model_save_dir,
-                    batch_size=64,
+                    batch_size=16,
                     val_frequency = val_frequency)
     trainer.train()
     # see Reference implementation of ImgSemSegTrainer
@@ -112,13 +122,16 @@ if __name__ == "__main__":
     args = argparse.ArgumentParser(description='Training')
     args.add_argument('-d', '--gpu_id', default='0', type=str,
                       help='index of which GPU to use')
-    
+    args.add_argument('--num_epochs', type=int, default=40, help='Number of epochs to train')
+    args.add_argument('--dataset', type=str, default='oxford', choices=['oxford', 'city'], help='Dataset to train on')
+    args.add_argument('--freeze_encoder', type=bool, default=False, help='Whether to freeze the encoder of the model')
+
     if not isinstance(args, tuple):
         args = args.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     args.gpu_id = 0
-    args.num_epochs = 31
-    # args.dataset = "oxford"
-    args.dataset = "city"
+    args.num_epochs = 40
+    args.dataset = "oxford"
+    # args.dataset = "city"
 
     train(args)
