@@ -79,12 +79,12 @@ def train(args):
             for param in model.net.encoder.parameters():
                 param.requires_grad = False
 
-            optimizer = torch.optim.AdamW(model.net.decoder.parameters(), lr=0.001)
+            optimizer = torch.optim.AdamW(model.net.decoder.parameters(), lr=0.001, amsgrad=True)
         else:
             # Option A: Fine-tune entire model
-            optimizer = torch.optim.AdamW(model.parameters(), lr=0.001)
+            optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
     else:
-        optimizer = torch.optim.AdamW(model.parameters(), lr=0.001)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
     model.to(device)
 
     ignore_index = 255 if args.dataset == "city" else -1
