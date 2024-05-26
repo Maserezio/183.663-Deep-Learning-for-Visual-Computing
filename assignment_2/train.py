@@ -9,9 +9,10 @@ from torchvision.models.segmentation import fcn_resnet50
 from dlvc.models.segment_model import DeepSegmenter
 from dlvc.dataset.oxfordpets import  OxfordPetsCustom
 from dlvc.metrics import SegMetrics
-from dlvc.trainer_reference_impl import ImgSemSegTrainer
+from dlvc.trainer import ImgSemSegTrainer
 
-
+import warnings
+warnings.filterwarnings("ignore")
 
 def train(args):
 
@@ -54,17 +55,16 @@ def train(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     model = DeepSegmenter(fcn_resnet50()).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
     loss_fn = torch.nn.CrossEntropyLoss()
     
     train_metric = SegMetrics(classes=train_data.classes_seg)
     val_metric = SegMetrics(classes=val_data.classes_seg)
-    val_frequency = 2
 
     model_save_dir = Path("saved_models")
     model_save_dir.mkdir(exist_ok=True)
 
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, gamma=0.98, step_size=1)
     
     trainer = ImgSemSegTrainer(model, 
                     optimizer,
@@ -75,10 +75,10 @@ def train(args):
                     train_data,
                     val_data,
                     device,
-                    15, 
+                    30, 
                     model_save_dir,
-                    batch_size=16,
-                    val_frequency = 5)
+                    batch_size=64,
+                    val_frequency = 2)
     trainer.train()
 
     # see Reference implementation of ImgSemSegTrainer

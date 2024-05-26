@@ -11,7 +11,6 @@ class PerformanceMeasure(metaclass=ABCMeta):
         '''
         Resets internal state.
         '''
-
         pass
 
     @abstractmethod
@@ -20,7 +19,6 @@ class PerformanceMeasure(metaclass=ABCMeta):
         Update the measure by comparing predicted data with ground-truth target data.
         Raises ValueError if the data shape or values are unsupported.
         '''
-
         pass
 
     @abstractmethod
@@ -28,7 +26,6 @@ class PerformanceMeasure(metaclass=ABCMeta):
         '''
         Return a string representation of the performance.
         '''
-
         pass
 
 
@@ -39,7 +36,6 @@ class SegMetrics(PerformanceMeasure):
 
     def __init__(self, classes):
         self.classes = classes
-
         self.reset()
 
     def reset(self) -> None:
@@ -49,9 +45,6 @@ class SegMetrics(PerformanceMeasure):
         self.intersection = torch.zeros(len(self.classes))
         self.union = torch.zeros(len(self.classes))
         self.total_pixels = torch.zeros(len(self.classes))
-
-
-
 
     def update(self, prediction: torch.Tensor, 
                target: torch.Tensor) -> None:
@@ -63,18 +56,19 @@ class SegMetrics(PerformanceMeasure):
         Make sure to not include pixels of value 255 in the calculation since those are to be ignored. 
         '''
 
-        for b in range(prediction.shape[0]):
-            for c in range(len(self.classes)):
-                class_mask = target[b] == c
-                pred_mask = prediction[b].argmax(dim=0) == c
-                intersection = (class_mask & pred_mask).sum().float()
-                union = (class_mask | pred_mask).sum().float()
-                total_pixels = class_mask.sum().float()
+        pred = prediction.argmax(dim=1)  # Calculate predicted class indices once outside the loop
 
-                self.intersection[c] += intersection
-                self.union[c] += union
-                self.total_pixels[c] += total_pixels
-   
+        for i in range(len(self.classes)):
+            target_class = (target == i) 
+            pred_class = (pred == i) 
+
+            valid_pixels = (target != 255)
+            target_class = target_class & valid_pixels
+            pred_class = pred_class & valid_pixels
+
+            self.intersection[i] += torch.sum(target_class & pred_class)
+            self.union[i] += torch.sum(target_class | pred_class)
+            self.total_pixels[i] += torch.sum(target_class) 
 
     def __str__(self):
         '''
@@ -83,9 +77,6 @@ class SegMetrics(PerformanceMeasure):
         '''
         return f"mIoU: {self.mIoU():.4f}"
 
-          
-
-    
     def mIoU(self) -> float:
         '''
         Compute and return the mean IoU as a float between 0 and 1.
@@ -93,10 +84,5 @@ class SegMetrics(PerformanceMeasure):
         If the denominator for IoU calculation for one of the classes is 0,
         use 0 as IoU for this class.
         '''
-        iou = (self.intersection / self.union).mean()
-        return iou.item() if not torch.isnan(iou) else 0.0
-
-
-
-
-
+        iou = (self.intersection / self.union).mean() 
+        return iou.item() if not torch.isnan(iou) else 0.0 
