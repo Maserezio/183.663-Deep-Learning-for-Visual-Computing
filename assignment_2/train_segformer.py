@@ -71,7 +71,7 @@ def train(args):
     if args.dataset == 'oxford':
         ##TODO update the encoder weights of the model with the loaded weights of the pretrained model
         # e.g. load pretrained weights with: state_dict = torch.load("path to model", map_location='cpu')
-        state_dict = torch.load("saved_models/SEG_model_best.pth", map_location='cpu')
+        state_dict = torch.load("saved_models/SegFormer_model_best.pth", map_location='cpu')
         model.net.encoder.load_state_dict(state_dict, strict=False)
         # pass
         ##

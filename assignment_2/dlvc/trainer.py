@@ -191,19 +191,24 @@ class ImgSemSegTrainer(BaseTrainer):
             train_loss, train_mIoU = self._train_epoch(epoch)
             print(f"Epoch {epoch}, Train Loss: {train_loss}, Train mIoU: {train_mIoU}")
             self.lr_scheduler.step()
+            current_lr = self.optimizer.param_groups[0]['lr']
             if epoch % self.val_frequency == 0:
                 val_loss, val_mIoU = self._val_epoch(epoch)
                 print(f"Epoch {epoch}, Val Loss: {val_loss}, Val mIoU: {val_mIoU}")
                 # self.wandb_logger.log_metrics(train_loss, train_mIoU, val_loss, val_mIoU)
-                self.wandb_logger.log({
-                    'epoch': epoch,
-                    'train_loss': train_loss,
-                    'val_loss': val_loss,
-                    'train_mIoU': train_mIoU,
-                    'val_mIoU': val_mIoU
-                })
                 if val_mIoU > best_mIoU:
                     best_mIoU = val_mIoU
                     self.model.save(self.training_save_dir, suffix='best')
                     print(f"Best model saved with mIoU: {best_mIoU}")
             print(f"Epoch {epoch}, Train Loss: {train_loss}, Train mIoU: {train_mIoU}, Val Loss: {val_loss}, Val mIoU: {val_mIoU}")
+            self.wandb_logger.log({
+                'epoch': epoch,
+                'train_loss': train_loss,
+                'val_loss': val_loss,
+                'train_mIoU': train_mIoU,
+                'val_mIoU': val_mIoU,
+                'lr': current_lr
+            })
+
+    def dispose(self) -> None:
+        self.wandb_logger.finish()
