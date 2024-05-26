@@ -48,13 +48,14 @@ def train(args):
                                 target_transform=val_transform2,
                                 download=True)
     if args.dataset == "city":
-        train_data = CityscapesCustom(root="path_to_dataset", 
+        train_data = CityscapesCustom(root="path_to_dataset/cityscapes",
                                 split="train",
                                 mode="fine",
                                 target_type='semantic', 
                                 transform=train_transform,
                                 target_transform=train_transform2)
-        val_data = CityscapesCustom(root="/data/databases/cityscapes", 
+        # val_data = CityscapesCustom(root="/data/databases/cityscapes",
+        val_data = CityscapesCustom(root="path_to_dataset/cityscapes",
                                 split="val",
                                 mode="fine",
                                 target_type='semantic', 
@@ -62,18 +63,23 @@ def train(args):
                                 target_transform=val_transform2)
 
 
-    device = ...
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    model = DeepSegmenter(...)
+    num_classes = len(train_data.classes_seg)
+    model = DeepSegmenter(SegFormer(num_classes=num_classes))
     # If you are in the fine-tuning phase:
     if args.dataset == 'oxford':
         ##TODO update the encoder weights of the model with the loaded weights of the pretrained model
         # e.g. load pretrained weights with: state_dict = torch.load("path to model", map_location='cpu')
-        ...
+        state_dict = torch.load("saved_models/SEG_model_best.pth", map_location='cpu')
+        model.net.encoder.load_state_dict(state_dict, strict=False)
+        # pass
         ##
     model.to(device)
-    optimizer = ...
-    loss_fn = ... # remember to ignore label value 255 when training with the Cityscapes datset
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.0001)
+
+    ignore_index = 255 if args.dataset == "city" else -1
+    loss_fn = torch.nn.CrossEntropyLoss(ignore_index=ignore_index) # remember to ignore label value 255 when training with the Cityscapes datset
     
     train_metric = SegMetrics(classes=train_data.classes_seg)
     val_metric = SegMetrics(classes=val_data.classes_seg)
@@ -82,7 +88,7 @@ def train(args):
     model_save_dir = Path("saved_models")
     model_save_dir.mkdir(exist_ok=True)
 
-    lr_scheduler = ...
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     
     trainer = ImgSemSegTrainer(model, 
                     optimizer,
@@ -112,6 +118,7 @@ if __name__ == "__main__":
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     args.gpu_id = 0
     args.num_epochs = 31
-    args.dataset = "oxford"
+    # args.dataset = "oxford"
+    args.dataset = "city"
 
     train(args)

@@ -9,6 +9,7 @@ from functools import partial
 import math
 from dlvc.models.segformer_utils import *
 
+
 class DWConv(nn.Module):
     def __init__(self, dim=768):
         super(DWConv, self).__init__()
@@ -21,6 +22,7 @@ class DWConv(nn.Module):
         x = x.flatten(2).transpose(1, 2)
 
         return x
+
 
 class Mlp(nn.Module):
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
@@ -58,6 +60,7 @@ class Mlp(nn.Module):
         x = self.fc2(x)
         x = self.drop(x)
         return x
+
 
 class Attention(nn.Module):
     def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0., sr_ratio=1):
@@ -110,8 +113,7 @@ class Attention(nn.Module):
             kv = self.kv(x).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         k, v = kv[0], kv[1]
 
-
-        # This part needs speed up which is why 
+        # This part needs speed up which is why
         attn = (q @ k.transpose(-2, -1)) * self.scale
         attn = attn.softmax(dim=-1)
         attn = self.attn_drop(attn)
@@ -121,6 +123,7 @@ class Attention(nn.Module):
         x = self.proj_drop(x)
 
         return x
+
 
 class Block(nn.Module):
 
@@ -158,13 +161,14 @@ class Block(nn.Module):
     def forward(self, x, H, W):
         #TODO implement the forward pass of one Transformer block
         # follow the instruction line by line
-        x1 = ...# apply self.norm1 to x
-        x1 = ...# apply self.attn to x1
+        x1 = self.norm1(x)  # apply self.norm1 to x
+        x1 = self.attn(x1, H, W)  # apply self.attn to x1
         x1 = x + self.drop_path(x1)
-        x2 = ...# apply self.norm2 to x1
-        x2 = ...# apply self.mlp to x2
+        x2 = self.norm2(x1)  # apply self.norm2 to x1
+        x2 = self.mlp(x2, H, W)  # apply self.mlp to x2
         x2 = x1 + self.drop_path(x2)
         return x2
+
 
 class OverlapPatchEmbed(nn.Module):
     """ Image to Patch Embedding
@@ -172,14 +176,15 @@ class OverlapPatchEmbed(nn.Module):
 
     def __init__(self, img_size=224, patch_size=7, stride=4, in_chans=3, embed_dim=768):
         super().__init__()
-        
+
         #TODO implement 
         # compute the new H an W given the original image size and the patchsize 
         # (we only look at quadratic patches meaning patch_size is same for H and W)
-        self.H, self.W = ...
+        self.H = (img_size + 2 * (patch_size // 2) - patch_size) // stride + 1
+        self.W = self.H
         # compute the number of patches given the new H and W
-        self.num_patches = ...
-        
+        self.num_patches = self.H * self.W
+
         self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=stride,
                               padding=(patch_size // 2, patch_size // 2))
         self.norm = nn.LayerNorm(embed_dim)
@@ -209,8 +214,9 @@ class OverlapPatchEmbed(nn.Module):
 
         return x, H, W
 
+
 class MixVisionTransformer(nn.Module):
-    def __init__(self, img_size=64,  in_chans=3, num_classes=3, embed_dims=[64, 128, 256, 512],
+    def __init__(self, img_size=64, in_chans=3, num_classes=3, embed_dims=[64, 128, 256, 512],
                  num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0.,
                  attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
                  depths=[3, 4, 6, 3], sr_ratios=[8, 4, 2, 1]):
@@ -262,7 +268,6 @@ class MixVisionTransformer(nn.Module):
             for i in range(depths[3])])
         self.norm4 = norm_layer(embed_dims[3])
 
-
         self.apply(self._init_weights)
 
     def _init_weights(self, m):
@@ -279,8 +284,6 @@ class MixVisionTransformer(nn.Module):
             m.weight.data.normal_(0, math.sqrt(2.0 / fan_out))
             if m.bias is not None:
                 m.bias.data.zero_()
-
-
 
     def forward(self, x):
         B = x.shape[0]
@@ -319,13 +322,3 @@ class MixVisionTransformer(nn.Module):
         outs.append(x)
 
         return outs
-
-
-           
-
-
-
-
-
-
-

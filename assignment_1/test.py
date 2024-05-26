@@ -74,9 +74,10 @@ def test(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Testing')
-    parser.add_argument('-m', '--model', default='vit', type=str,
+    parser.add_argument('-m', '--model', default='resnet18', type=str,
                       help='model to be tested')
-    parser.add_argument('-p', '--path_to_model', default='saved_models/ViT__l_rate_9.549150281252641e-06_optim_Adam_scheduler_CosineAnnealingLR_num_epochs_200_batch_size_128.pth', type=str,
+    # parser.add_argument('-p', '--path_to_model', default='saved_models/ViT_best_aug_cos/ViT__l_rate_1.577264470356558e-05_optim_Adam_scheduler_CosineAnnealingLR_num_epochs_200_batch_size_128.pth', type=str,
+    parser.add_argument('-p', '--path_to_model', default='saved_models/ResNet18/ResNet18__l_rate_1.003391277553334e-05_optim_SGD_scheduler_ExponentialLR_num_epochs_30_batch_size_256.pth', type=str,
                       help='path to the trained model')
     
     args = parser.parse_args()

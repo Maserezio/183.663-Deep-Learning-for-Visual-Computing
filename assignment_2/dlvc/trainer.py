@@ -6,6 +6,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from dlvc.wandb_logger import WandBLogger
+from dlvc.dataset.oxfordpets import OxfordPetsCustom
 
 class BaseTrainer(metaclass=ABCMeta):
     '''
@@ -91,6 +92,8 @@ class ImgSemSegTrainer(BaseTrainer):
         self.training_save_dir = training_save_dir
         self.batch_size = batch_size
         self.val_frequency = val_frequency
+
+        self.subtract_one = isinstance(train_data, OxfordPetsCustom)
         self.train_data_loader = torch.utils.data.DataLoader(train_data,
                                                             batch_size=batch_size,
                                                             shuffle=True,
@@ -122,13 +125,16 @@ class ImgSemSegTrainer(BaseTrainer):
 
         for batch_idx, (data, target) in tqdm(enumerate(self.train_data_loader), desc="train", total=len(self.train_data_loader)):
             data, target = data.to(self.device), target.to(self.device)
+            # target = target.squeeze(1) - 1
+            # target = target.squeeze(1) - int(self.subtract_one)
             self.optimizer.zero_grad()
             output = self.model(data)
             
             if isinstance(output, collections.OrderedDict):
                 output = output['out'].to(self.device)
 
-            loss = self.loss_fn(output, target.squeeze(1) - 1)
+            # loss = self.loss_fn(output, target.squeeze(1) - 1)
+            loss = self.loss_fn(output, target.squeeze(1) - int(self.subtract_one))
             loss.backward()
             self.optimizer.step()
             # if not isinstance(self.lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -158,12 +164,14 @@ class ImgSemSegTrainer(BaseTrainer):
         with torch.no_grad():
             for batch_idx, (data, target) in tqdm(enumerate(self.val_data_loader), desc="val", total=len(self.val_data_loader)):
                 data, target = data.to(self.device), target.to(self.device)
+                target = target.squeeze(1) - int(self.subtract_one)
                 output = self.model(data)
                 
                 if isinstance(output, collections.OrderedDict):
                     output = output['out'].to(self.device)
 
-                loss = self.loss_fn(output, target.squeeze(1) - 1)
+                # loss = self.loss_fn(output, target.squeeze(1) - 1)
+                loss = self.loss_fn(output, target.squeeze(1) - int(self.subtract_one))
                 total_loss += loss.item()
                 self.val_metric.update(output.cpu(), target.cpu())
         
@@ -186,9 +194,16 @@ class ImgSemSegTrainer(BaseTrainer):
             if epoch % self.val_frequency == 0:
                 val_loss, val_mIoU = self._val_epoch(epoch)
                 print(f"Epoch {epoch}, Val Loss: {val_loss}, Val mIoU: {val_mIoU}")
-            self.wandb_logger.log_metrics(train_loss, train_mIoU, val_loss, val_mIoU)
-            if val_mIoU > best_mIoU:
-                best_mIoU = val_mIoU
-                self.model.save(self.training_save_dir, suffix='best')
-                print(f"Best model saved with mIoU: {best_mIoU}")
+                # self.wandb_logger.log_metrics(train_loss, train_mIoU, val_loss, val_mIoU)
+                self.wandb_logger.log({
+                    'epoch': epoch,
+                    'train_loss': train_loss,
+                    'val_loss': val_loss,
+                    'train_mIoU': train_mIoU,
+                    'val_mIoU': val_mIoU
+                })
+                if val_mIoU > best_mIoU:
+                    best_mIoU = val_mIoU
+                    self.model.save(self.training_save_dir, suffix='best')
+                    print(f"Best model saved with mIoU: {best_mIoU}")
             print(f"Epoch {epoch}, Train Loss: {train_loss}, Train mIoU: {train_mIoU}, Val Loss: {val_loss}, Val mIoU: {val_mIoU}")
