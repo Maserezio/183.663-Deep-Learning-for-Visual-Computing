@@ -164,7 +164,7 @@ class ImgSemSegTrainer(BaseTrainer):
         with torch.no_grad():
             for batch_idx, (data, target) in tqdm(enumerate(self.val_data_loader), desc="val", total=len(self.val_data_loader)):
                 data, target = data.to(self.device), target.to(self.device)
-                target = target.squeeze(1) - int(self.subtract_one)
+                # target = target.squeeze(1) - int(self.subtract_one)
                 output = self.model(data)
                 
                 if isinstance(output, collections.OrderedDict):
@@ -202,12 +202,12 @@ class ImgSemSegTrainer(BaseTrainer):
                     print(f"Best model saved with mIoU: {best_mIoU}")
             print(f"Epoch {epoch}, Train Loss: {train_loss}, Train mIoU: {train_mIoU}, Val Loss: {val_loss}, Val mIoU: {val_mIoU}")
             self.wandb_logger.log({
-                'epoch': epoch,
-                'train_loss': train_loss,
-                'val_loss': val_loss,
-                'train_mIoU': train_mIoU,
-                'val_mIoU': val_mIoU,
-                'lr': current_lr
+                    'train_loss': train_loss,
+                    'train_mIoU': train_mIoU,
+                    'val_loss': val_loss,
+                    'val_mIoU': val_mIoU,
+                    'lr': current_lr,
+                    'epoch': epoch,
             })
 
     def dispose(self) -> None:
