@@ -68,7 +68,7 @@ def train(args):
     num_classes = len(train_data.classes_seg)
     model = DeepSegmenter(SegFormer(num_classes=num_classes))
     # If you are in the fine-tuning phase:
-    if args.dataset == 'oxford':
+    if args.dataset == 'oxford' and args.pretrained:
         ##TODO update the encoder weights of the model with the loaded weights of the pretrained model
         # e.g. load pretrained weights with: state_dict = torch.load("path to model", map_location='cpu')
         state_dict = torch.load("saved_models/SegFormer_pretrained.pth", map_location='cpu')
@@ -123,15 +123,16 @@ if __name__ == "__main__":
     args.add_argument('-d', '--gpu_id', default='0', type=str,
                       help='index of which GPU to use')
     args.add_argument('--num_epochs', type=int, default=40, help='Number of epochs to train')
-    args.add_argument('--dataset', type=str, default='city', choices=['oxford', 'city'], help='Dataset to train on')
+    args.add_argument('--dataset', type=str, default='oxford', choices=['oxford', 'city'], help='Dataset to train on')
     args.add_argument('--freeze_encoder', type=bool, default=True, help='Whether to freeze the encoder of the model')
+    args.add_argument('--pretrained', type=bool, default=True, help='Whether to use a pretrained model')
 
     if not isinstance(args, tuple):
         args = args.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     args.gpu_id = 0
     args.num_epochs = 40
-    # args.dataset = "oxford"
-    args.dataset = "city"
+    args.dataset = "oxford"
+    # args.dataset = "city"
 
     train(args)
